@@ -6,6 +6,7 @@
 	"last-modified": true,
 	"content-type": true,
 	"max-cache-size": 1024,
-	"max-cache-age": 60000
+	"max-cache-age": 60000,
+	"ignore-errors":true
 
 }

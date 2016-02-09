@@ -131,6 +131,7 @@ module.exports = function(path, options){
 
 		}).then(function(fileObj){
 
+			res.setHeader("Cache-Control", "no-cache, must-revalidate");
 			res.setHeader("Content-Type", fileObj.contentType);
 
 			if(options["last-modified"]){
@@ -174,6 +175,12 @@ module.exports = function(path, options){
 
 			if(options["continue"]) next();
 			else res.end();
+
+		}).catch(function(err){
+
+			if(options["ignore-errors"]){
+				res.status(404).end();
+			}
 
 		});
 
