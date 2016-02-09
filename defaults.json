@@ -9,6 +9,7 @@
 	"max-cache-age": 60000,
 	"ignore-errors": true,
 	"browser-cache": true,
-	"browser-max-cache-age": 60
+	"browser-cache-max-age": 60,
+	"browser-cache-s-maxage": 60
 
 }

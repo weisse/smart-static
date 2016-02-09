@@ -71,11 +71,12 @@ module.exports = function(path, options){
 			 */
 			return new bluebird.Promise(function(res, rej){
 
-				fs.readFile(absolutePath, function(err, data){
+				fs.readFile(absolutePath, function(err, buffer){
 					if(err){
 						rej(err);
 					}else{
-						fileObj.data = data;
+						fileObj.data = buffer;
+						fileObj.contentLength = buffer.length;
 						res(fileObj);
 					}
 				});
@@ -100,6 +101,7 @@ module.exports = function(path, options){
 								}else{
 									fileObj.compressed = true;
 									fileObj.data = buffer;
+									fileObj.contentLength = buffer.length;
 									res(fileObj);
 								}
 							});
@@ -132,11 +134,16 @@ module.exports = function(path, options){
 		}).then(function(fileObj){
 
 			res.setHeader("Content-Type", fileObj.contentType);
+			res.setHeader("Content-Length", fileObj.contentLength);
 
 			if(options["browser-cache"]){
-				res.setHeader("Cache-Control", "max-age=" + options["browser-max-cache-age"]);
+				res.setHeader(
+					"Cache-Control",
+					"max-age=" + options["browser-cache-max-age"] +
+				 	", s-maxage=" + options["browser-cache-s-maxage"]
+				);
 			}else{
-				res.setHeader("Cache-Control", "no-cache, must-revalidate");
+				res.setHeader("Cache-Control", "no-cache, must-revalidate, max-age=0, s-maxage=0");
 			}
 
 			if(options["last-modified"]){
@@ -168,8 +175,12 @@ module.exports = function(path, options){
 						 * Fallback for legacy compatibility
 						 */
 						zlib.gunzip(fileObj.data, function(err, buffer){
-								if(err) throw new Error(err);
-								else res.status(200).write(buffer);
+								if(err){
+									throw new Error(err);
+								}else{
+									res.status(200).write(buffer);
+									res.setHeader("Content-Length", buffer.length);
+								}
 						});
 					}
 			}else{
