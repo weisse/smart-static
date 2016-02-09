@@ -1,6 +1,6 @@
 {
   "name": "smart-static",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Serve your static files with an high-speed middleware",
   "main": "index.js",
   "scripts": {
