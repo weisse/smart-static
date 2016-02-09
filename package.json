@@ -1,6 +1,6 @@
 {
   "name": "smart-static",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Serve your static files with an high-speed middleware",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,7 @@
     "accepts": "^1.3.1",
     "bluebird": "^3.2.2",
     "compressible": "^2.0.7",
+    "etag": "^1.7.0",
     "lru-cache": "^4.0.0",
     "mime-types": "^2.1.9",
     "underscore": "^1.8.3"

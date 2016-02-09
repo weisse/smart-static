@@ -1,8 +1,6 @@
 const fs = require("fs");
 const p = require("path");
 const zlib = require("zlib");
-const crypto = require("crypto");
-const buffer = require("buffer");
 
 const _ = require("underscore");
 const lru = require("lru-cache");
@@ -10,6 +8,7 @@ const bluebird = require("bluebird");
 const accepts = require("accepts");
 const compressible = require("compressible");
 const mimeTypes = require("mime-types");
+const etag = require("etag");
 
 const defaults = require(p.join(__dirname, "./defaults.json"));
 
@@ -84,13 +83,9 @@ module.exports = function(path, options){
 			}).then(function(fileObj){
 
 				/*
-				 * Minify where possible and requested
+				 * TODO: Minify where possible and requested
 				 */
-				if(options.minify){
-					return fileObj;
-				}else{
-					return fileObj;
-				}
+				return fileObj;
 
 			}).then(function(fileObj){
 
@@ -120,7 +115,7 @@ module.exports = function(path, options){
 				 * Generate etag with provided algorithm
 				 */
 				if(options.etag){
-					fileObj.etag = crypto.createHash(options["hash-algorithm"]).update(fileObj.data).digest("hex");
+					fileObj.etag = etag(fileObj.data);
 				}
 
 				return fileObj;
@@ -138,21 +133,23 @@ module.exports = function(path, options){
 		}).then(function(fileObj){
 
 			res.setHeader("Content-Type", fileObj.contentType);
-			res.setHeader("ETag", fileObj.etag);
-			res.setHeader("Last-Modified", fileObj.stat.mtime.toGMTString());
 
-			var ifModifiedSince = req.get("if-modified-since");
-
-			if(options["if-modified-since"] && ifModifiedSince === fileObj.stat.mtime.toString()){
-					res.status(304);
-					return;
+			if(options["last-modified"]){
+					res.setHeader("Last-Modified", fileObj.stat.mtime.toGMTString());
+					var ifModifiedSince = req.get("if-modified-since");
+					if(ifModifiedSince === fileObj.stat.mtime.toString()){
+						res.status(304);
+						return;
+					}
 			}
 
-			var ifNoneMatch = req.get("if-none-match");
-
-			if(options["etag"] && ifNoneMatch === fileObj.etag){
-					res.status(304);
-					return;
+			if(options["etag"])
+					res.setHeader("ETag", fileObj.etag);
+					var ifNoneMatch = req.get("if-none-match");
+			 		if(ifNoneMatch === fileObj.etag){
+						res.status(304);
+						return;
+					}
 			}
 
 			if(options["compression"] && fileObj.compressed){

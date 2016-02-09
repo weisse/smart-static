@@ -1,12 +1,11 @@
 {
-	
+
 	"compression": true,
 	"minify": true,
 	"etag": true,
-	"if-modified-since": true,
+	"last-modified": true,
 	"content-type": true,
 	"max-cache-size": 1024,
-	"max-cache-age": 60000,
-	"hash-algorithm": "md5"
-	
+	"max-cache-age": 60000
+
 }
