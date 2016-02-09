@@ -104,7 +104,6 @@ module.exports = function(path, options){
 								}
 							});
 						});
-					}
 				}
 
 				return fileObj;
@@ -143,7 +142,7 @@ module.exports = function(path, options){
 					}
 			}
 
-			if(options["etag"])
+			if(options["etag"]){
 					res.setHeader("ETag", fileObj.etag);
 					var ifNoneMatch = req.get("if-none-match");
 			 		if(ifNoneMatch === fileObj.etag){
@@ -167,7 +166,6 @@ module.exports = function(path, options){
 								else res.status(200).write(buffer);
 						});
 					}
-				}
 			}else{
 				res.status(200).write(fileObj.data);
 			}
