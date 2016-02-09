@@ -131,8 +131,13 @@ module.exports = function(path, options){
 
 		}).then(function(fileObj){
 
-			res.setHeader("Cache-Control", "no-cache, must-revalidate");
 			res.setHeader("Content-Type", fileObj.contentType);
+
+			if(options["browser-cache"]){
+				res.setHeader("Cache-Control", "max-age=" + options["browser-max-cache-age"]);
+			}else{
+				res.setHeader("Cache-Control", "no-cache, must-revalidate");
+			}
 
 			if(options["last-modified"]){
 					res.setHeader("Last-Modified", fileObj.stat.mtime.toGMTString());
@@ -160,7 +165,7 @@ module.exports = function(path, options){
 						res.status(200).write(fileObj.data);
 					}else{
 						/*
-						 * Fallback for compatibility
+						 * Fallback for legacy compatibility
 						 */
 						zlib.gunzip(fileObj.data, function(err, buffer){
 								if(err) throw new Error(err);

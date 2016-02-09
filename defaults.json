@@ -5,8 +5,10 @@
 	"etag": true,
 	"last-modified": true,
 	"content-type": true,
-	"max-cache-size": 1024,
+	"max-cache-size": 10240000,
 	"max-cache-age": 60000,
-	"ignore-errors":true
+	"ignore-errors": true,
+	"browser-cache": true,
+	"browser-max-cache-age": 60
 
 }
