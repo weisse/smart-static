@@ -9,13 +9,19 @@ const accepts = require("accepts");
 const compressible = require("compressible");
 const mimeTypes = require("mime-types");
 const etag = require("etag");
+const uglifyjs = require("uglify-js");
+const uglifycss = require("uglifycss");
 
 const defaults = require(p.join(__dirname, "./defaults.json"));
+const compressionLevels = [zlib.Z_BEST_SPEED, zlib.Z_DEFAULT_COMPRESSION, zlib.Z_BEST_COMPRESSION];
 
 module.exports = function(path, options){
 
 	if(!options) options = {};
 	options = _.extend(defaults, options);
+
+	var compressionLevel = compressionLevels[options["compression-level"]] || zlib.Z_DEFAULT_COMPRESSION;
+	var basePath = p.resolve(process.cwd(), path);
 
 	var cache = lru({
 
@@ -26,10 +32,94 @@ module.exports = function(path, options){
 		maxAge: options["max-cache-age"]
 
 	});
+	
+	var processFile = function(fileObj){
+		
+		return new bluebird.Promise(function(res, rej){
 
-	var basePath = p.resolve(process.cwd(), path);
+			fs.readFile(fileObj.absolutePath, function(err, buffer){
+				if(err){
+					rej(err);
+				}else{
+					fileObj.data = buffer;
+					fileObj.contentLength = buffer.length;
+					res(fileObj);
+				}
+			});
 
-	return function(req, res, next){
+		}).then(function(fileObj){
+
+			/*
+			 * TODO: Minify where possible and requested
+			 */
+			if(options.minify && !fileObj.minified){
+				switch(fileObj.extension){
+					case ".js":
+						try{
+							var minified = uglifyjs.minify(fileObj.data.toString("utf8"), {
+								mangle:options["minify-mangle"],
+								fromString:true
+							});
+							fileObj.data = new Buffer(minified.code, "utf8");
+						}catch(e){}
+					break;
+					case ".css":
+						try{
+							var minified = uglifycss.processString(fileObj.data.toString("utf8"));
+							fileObj.data = new Buffer(minified, "utf8");
+						}catch(e){}
+					break;
+				}
+			}
+			
+			return fileObj;
+
+		}).then(function(fileObj){
+
+			/*
+			 * Compress using gzip
+			 */
+			if(options.compression && compressible(fileObj.contentType)){
+				return new bluebird.Promise(function(res, rej){
+					zlib.gzip(fileObj.data, {level:compressionLevel}, function(err, buffer){
+						if(err){
+							rej(err);
+						}else{
+							fileObj.compressed = true;
+							fileObj.data = buffer;
+							fileObj.contentLength = buffer.length;
+							res(fileObj);
+						}
+					});
+				});
+			}
+
+			return fileObj;
+
+		}).then(function(fileObj){
+
+			/*
+			 * Generate etag with provided algorithm
+			 */
+			if(options.etag){
+				fileObj.etag = etag(fileObj.data);
+			}
+
+			return fileObj;
+
+		}).then(function(fileObj){
+
+			/*
+			 * Write in cache
+			 */
+			cache.set(fileObj.absolutePath, fileObj, options["max-cache-age"]);
+			return fileObj;
+
+		});
+		
+	};
+	
+	var middleware = function(req, res, next){
 
 		var relativePath = req.path;
 		var absolutePath = p.join(basePath, relativePath);
@@ -59,77 +149,22 @@ module.exports = function(path, options){
 					return fileObj;
 				}
 			}
-
+			
+			var ext = p.extname(absolutePath)
+			
 			fileObj = {
 				stat: statObj,
-				contentType: mimeTypes.contentType(p.extname(absolutePath)),
-				compressed: false
+				contentType: mimeTypes.contentType(ext),
+				extension: ext,
+				compressed: false,
+				absolutePath: absolutePath,
+				minified: p.basename(absolutePath).match(new RegExp("\.min" + ext, "gi"))
 			};
 
 			/*
-			 * Read file
+			 * Process file
 			 */
-			return new bluebird.Promise(function(res, rej){
-
-				fs.readFile(absolutePath, function(err, buffer){
-					if(err){
-						rej(err);
-					}else{
-						fileObj.data = buffer;
-						fileObj.contentLength = buffer.length;
-						res(fileObj);
-					}
-				});
-
-			}).then(function(fileObj){
-
-				/*
-				 * TODO: Minify where possible and requested
-				 */
-				return fileObj;
-
-			}).then(function(fileObj){
-
-				/*
-				 * Compress using gzip
-				 */
-				if(options.compression && compressible(fileObj.contentType)){
-						return new bluebird.Promise(function(res, rej){
-							zlib.gzip(fileObj.data, function(err, buffer){
-								if(err){
-									rej(err);
-								}else{
-									fileObj.compressed = true;
-									fileObj.data = buffer;
-									fileObj.contentLength = buffer.length;
-									res(fileObj);
-								}
-							});
-						});
-				}
-
-				return fileObj;
-
-			}).then(function(fileObj){
-
-				/*
-				 * Generate etag with provided algorithm
-				 */
-				if(options.etag){
-					fileObj.etag = etag(fileObj.data);
-				}
-
-				return fileObj;
-
-			}).then(function(fileObj){
-
-				/*
-				 * Write in cache
-				 */
-				cache.set(absolutePath, fileObj, options["max-cache-age"]);
-				return fileObj;
-
-			});
+			return processFile(fileObj);
 
 		}).then(function(fileObj){
 
@@ -196,10 +231,47 @@ module.exports = function(path, options){
 
 			if(options["ignore-errors"]){
 				res.status(404).end();
+			}else{
+				if(err.code === "ENOENT"){
+					res.status(404).end();
+				}else{
+					console.error(err);
+					res.status(500).end();
+				}				
 			}
 
 		});
 
 	};
+
+	if(options.prepareCache){
+		return new bluebird.Promise(function(res, rej){
+			var promises = [];
+			var finder = require("findit")(basePath);
+			finder.on("file", function(absolutePath, stat){
+				
+				var ext = p.extname(absolutePath);
+				
+				fileObj = {
+					stat: stat,
+					contentType: mimeTypes.contentType(ext),
+					extension: ext,
+					compressed: false,
+					absolutePath: absolutePath,
+					minified: p.basename(absolutePath).match(new RegExp("\.min" + ext, "gi"))
+				};
+				
+				promises.push(processFile(fileObj));
+				
+			});
+			finder.on("end", function(){
+				Promise.all(promises).then(function(){
+					res(middleware);
+				});
+			});
+		});
+	}
+		
+	return middleware;
 
 };

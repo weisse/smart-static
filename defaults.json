@@ -1,15 +1,18 @@
 {
 
 	"compression": true,
-	"minify": true,
+	"compression-level": 1,
+	"minify": false,
+	"minify-mangle": true,
 	"etag": true,
 	"last-modified": true,
 	"content-type": true,
-	"max-cache-size": 10240000,
-	"max-cache-age": 60000,
-	"ignore-errors": true,
+	"max-cache-size": 104857600,
+	"max-cache-age": 0,
+	"ignore-errors": false,
 	"browser-cache": true,
-	"browser-cache-max-age": 60,
-	"browser-cache-s-maxage": 60
+	"browser-cache-max-age": 300,
+	"browser-cache-s-maxage": 300,
+	"prepareCache": false
 
 }
