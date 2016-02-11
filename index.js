@@ -32,9 +32,9 @@ module.exports = function(path, options){
 		maxAge: options["max-cache-age"]
 
 	});
-	
+
 	var processFile = function(fileObj){
-		
+
 		return new bluebird.Promise(function(res, rej){
 
 			fs.readFile(fileObj.absolutePath, function(err, buffer){
@@ -69,9 +69,15 @@ module.exports = function(path, options){
 							fileObj.data = new Buffer(minified, "utf8");
 						}catch(e){}
 					break;
+					case ".json":
+						try{
+							var minified = JSON.stringify(JSON.parse(fileObj.data.toString("utf8")));
+							fileObj.data = new Buffer(minified, "utf8");
+						}catch(e){}
+					break;
 				}
 			}
-			
+
 			return fileObj;
 
 		}).then(function(fileObj){
@@ -116,9 +122,9 @@ module.exports = function(path, options){
 			return fileObj;
 
 		});
-		
+
 	};
-	
+
 	var middleware = function(req, res, next){
 
 		var relativePath = req.path;
@@ -149,9 +155,9 @@ module.exports = function(path, options){
 					return fileObj;
 				}
 			}
-			
+
 			var ext = p.extname(absolutePath)
-			
+
 			fileObj = {
 				stat: statObj,
 				contentType: mimeTypes.contentType(ext),
@@ -237,7 +243,7 @@ module.exports = function(path, options){
 				}else{
 					console.error(err);
 					res.status(500).end();
-				}				
+				}
 			}
 
 		});
@@ -249,9 +255,9 @@ module.exports = function(path, options){
 			var promises = [];
 			var finder = require("findit")(basePath);
 			finder.on("file", function(absolutePath, stat){
-				
+
 				var ext = p.extname(absolutePath);
-				
+
 				fileObj = {
 					stat: stat,
 					contentType: mimeTypes.contentType(ext),
@@ -260,9 +266,9 @@ module.exports = function(path, options){
 					absolutePath: absolutePath,
 					minified: p.basename(absolutePath).match(new RegExp("\.min" + ext, "gi"))
 				};
-				
+
 				promises.push(processFile(fileObj));
-				
+
 			});
 			finder.on("end", function(){
 				Promise.all(promises).then(function(){
@@ -271,7 +277,7 @@ module.exports = function(path, options){
 			});
 		});
 	}
-		
+
 	return middleware;
 
 };
