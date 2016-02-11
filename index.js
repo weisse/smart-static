@@ -173,10 +173,13 @@ module.exports = function(path, options){
 			return processFile(fileObj);
 
 		}).then(function(fileObj){
-
-			res.setHeader("Content-Type", fileObj.contentType);
+			
 			res.setHeader("Content-Length", fileObj.contentLength);
-
+			
+			if(options["content-type"]){
+				res.setHeader("Content-Type", fileObj.contentType);
+			}
+			
 			if(options["browser-cache"]){
 				res.setHeader(
 					"Cache-Control",
@@ -250,7 +253,7 @@ module.exports = function(path, options){
 
 	};
 
-	if(options.prepareCache){
+	if(options["prepare-cache"]){
 		return new bluebird.Promise(function(res, rej){
 			var promises = [];
 			var finder = require("findit")(basePath);

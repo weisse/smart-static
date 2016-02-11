@@ -13,6 +13,6 @@
 	"browser-cache": true,
 	"browser-cache-max-age": 300,
 	"browser-cache-s-maxage": 300,
-	"prepareCache": false
+	"prepare-cache": false
 
 }

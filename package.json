@@ -1,6 +1,6 @@
 {
   "name": "speedy-static",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Serve your static files with an high-speed middleware",
   "main": "index.js",
   "scripts": {
