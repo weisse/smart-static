@@ -11,6 +11,7 @@ const mimeTypes = require("mime-types");
 const etag = require("etag");
 const uglifyjs = require("uglify-js");
 const uglifycss = require("uglifycss");
+const numeraljs = require("numeraljs");
 
 const defaults = require(p.join(__dirname, "./defaults.json"));
 const compressionLevels = [zlib.Z_BEST_SPEED, zlib.Z_DEFAULT_COMPRESSION, zlib.Z_BEST_COMPRESSION];
@@ -28,7 +29,7 @@ module.exports = function(path, options){
 		length: function(element, key){
 			return element.data.length;
 		},
-		max: options["max-cache-size"],
+		max: numeraljs().unformat(options["max-cache-size"]),
 		maxAge: options["max-cache-age"]
 
 	});
@@ -50,7 +51,7 @@ module.exports = function(path, options){
 		}).then(function(fileObj){
 
 			/*
-			 * TODO: Minify where possible and requested
+			 * Minify where possible and requested
 			 */
 			if(options.minify && !fileObj.minified){
 				switch(fileObj.extension){
@@ -61,18 +62,24 @@ module.exports = function(path, options){
 								fromString:true
 							});
 							fileObj.data = new Buffer(minified.code, "utf8");
+							fileObj.contentLength = fileObj.data.length;
+							fileObj.minified = true;
 						}catch(e){}
 					break;
 					case ".css":
 						try{
 							var minified = uglifycss.processString(fileObj.data.toString("utf8"));
 							fileObj.data = new Buffer(minified, "utf8");
+							fileObj.contentLength = fileObj.data.length;
+							fileObj.minified = true;
 						}catch(e){}
 					break;
 					case ".json":
 						try{
 							var minified = JSON.stringify(JSON.parse(fileObj.data.toString("utf8")));
 							fileObj.data = new Buffer(minified, "utf8");
+							fileObj.contentLength = fileObj.data.length;
+							fileObj.minified = true;
 						}catch(e){}
 					break;
 				}
@@ -91,9 +98,9 @@ module.exports = function(path, options){
 						if(err){
 							rej(err);
 						}else{
-							fileObj.compressed = true;
 							fileObj.data = buffer;
 							fileObj.contentLength = buffer.length;
+							fileObj.compressed = true;
 							res(fileObj);
 						}
 					});
@@ -105,7 +112,7 @@ module.exports = function(path, options){
 		}).then(function(fileObj){
 
 			/*
-			 * Generate etag with provided algorithm
+			 * Generate etag
 			 */
 			if(options.etag){
 				fileObj.etag = etag(fileObj.data);
