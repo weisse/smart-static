@@ -180,13 +180,13 @@ module.exports = function(path, options){
 			return processFile(fileObj);
 
 		}).then(function(fileObj){
-			
+
 			res.setHeader("Content-Length", fileObj.contentLength);
-			
+
 			if(options["content-type"]){
 				res.setHeader("Content-Type", fileObj.contentType);
 			}
-			
+
 			if(options["browser-cache"]){
 				res.setHeader(
 					"Cache-Control",
@@ -225,13 +225,16 @@ module.exports = function(path, options){
 						/*
 						 * Fallback for legacy compatibility
 						 */
-						zlib.gunzip(fileObj.data, function(err, buffer){
-								if(err){
-									throw new Error(err);
-								}else{
-									res.status(200).write(buffer);
-									res.setHeader("Content-Length", buffer.length);
-								}
+						return new bluebird.Promise(function(resolve, reject){
+							zlib.gunzip(fileObj.data, function(err, buffer){
+									if(err){
+										reject(err);
+									}else{
+										res.setHeader("Content-Length", buffer.length);
+										res.status(200).write(buffer);
+										resolve();
+									}
+							});
 						});
 					}
 			}else{
