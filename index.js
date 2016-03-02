@@ -21,7 +21,6 @@ module.exports = function(path, options){
 	if(!options) options = {};
 	options = _.extend(defaults, options);
 
-	var compressionLevel = compressionLevels[options["compression-level"]] || zlib.Z_DEFAULT_COMPRESSION;
 	var basePath = p.resolve(process.cwd(), path);
 
 	var cache = lru({
@@ -35,19 +34,94 @@ module.exports = function(path, options){
 	});
 
 	var processFile = function(fileObj){
-
+		
 		return new bluebird.Promise(function(res, rej){
-
-			fs.readFile(fileObj.absolutePath, function(err, buffer){
-				if(err){
-					rej(err);
+			
+			/*
+			 * Check whether to ignore
+			 */
+			var absolutePath = fileObj.absolutePath;
+			var fileName = fileObj.fileName;
+			
+			for(var i = 0; i < options.ignore.length; i++){
+				var ignoreString = options.ignore[i];
+				if(fileName === ignoreString){
+					rej({code:"IGNORE"});
 				}else{
-					fileObj.data = buffer;
-					fileObj.contentLength = buffer.length;
-					res(fileObj);
+					/*
+					 * Absolutize path to ignore
+					 */
+					var ignorePath = p.resolve(basePath, ignoreString);
+					if(absolutePath === ignorePath){
+						rej({code:"IGNORE"});
+					}else{
+						/*
+						 * Maybe the path points on a directory
+						 */
+						if(!ignorePath.endsWith("/")){
+							ignorePath = ignorePath + "/";
+						}
+						if((p.dirname(absolutePath) + "/").startsWith(ignorePath)){
+							rej({code:"IGNORE"});
+						}
+					}
 				}
+			}
+			
+			for(var i  = 0; i < options.ignoreRegExp.length; i++){
+				var regexp = new RegExp(options.ignoreRegExp);
+				if(fileName.match(regexp)){
+					rej({code:"IGNORE"});
+				}
+			}
+			
+			res(fileObj);
+			
+		}).then(function(){
+			
+			return new bluebird.Promise(function(res, rej){
+				
+				/*
+				 * Check .dotfiles
+				 */
+				if(fileObj.fileName.substring(0, 1) === "."){
+					if(options["hide-dotfiles"]){
+						rej({code:"IGNORE"});
+					}
+				}
+				
+				res(fileObj);
+				
 			});
-
+			
+		}).then(function(fileObj){
+			
+			/*
+			 * Read file from fs
+			 */
+			return new bluebird.Promise(function(res, rej){
+				
+				var path = fileObj.absolutePath;
+				
+				fs.open(path, "r", function(err, fd){
+					if(err){
+						rej(err);
+					}else{
+						fs.readFile(path, function(err, buffer){
+							fs.close(fd);
+							if(err){
+								rej(err);
+							}else{
+								fileObj.data = buffer;
+								fileObj.contentLength = buffer.length;
+								res(fileObj);
+							}
+						});
+					}
+				});
+				
+			});
+			
 		}).then(function(fileObj){
 
 			/*
@@ -94,6 +168,7 @@ module.exports = function(path, options){
 			 */
 			if(options.compression && compressible(fileObj.contentType)){
 				return new bluebird.Promise(function(res, rej){
+					var compressionLevel = compressionLevels[options["compression-level"]] || zlib.Z_DEFAULT_COMPRESSION;
 					zlib.gzip(fileObj.data, {level:compressionLevel}, function(err, buffer){
 						if(err){
 							rej(err);
@@ -131,9 +206,9 @@ module.exports = function(path, options){
 		});
 
 	};
-
+	
 	var middleware = function(req, res, next){
-
+		
 		var relativePath = req.path;
 		var absolutePath = p.join(basePath, relativePath);
 
@@ -163,15 +238,17 @@ module.exports = function(path, options){
 				}
 			}
 
-			var ext = p.extname(absolutePath)
-
+			var ext = p.extname(absolutePath);
+			var fileName = p.basename(absolutePath);
+			
 			fileObj = {
 				stat: statObj,
 				contentType: mimeTypes.contentType(ext),
 				extension: ext,
 				compressed: false,
 				absolutePath: absolutePath,
-				minified: p.basename(absolutePath).match(new RegExp("\.min" + ext, "gi"))
+				fileName: fileName,
+				minified: fileName.match(new RegExp("\.min" + ext, "gi"))
 			};
 
 			/*
@@ -180,13 +257,13 @@ module.exports = function(path, options){
 			return processFile(fileObj);
 
 		}).then(function(fileObj){
-
+			
 			res.setHeader("Content-Length", fileObj.contentLength);
-
+			
 			if(options["content-type"]){
 				res.setHeader("Content-Type", fileObj.contentType);
 			}
-
+			
 			if(options["browser-cache"]){
 				res.setHeader(
 					"Cache-Control",
@@ -227,13 +304,13 @@ module.exports = function(path, options){
 						 */
 						return new bluebird.Promise(function(resolve, reject){
 							zlib.gunzip(fileObj.data, function(err, buffer){
-									if(err){
-										reject(err);
-									}else{
-										res.setHeader("Content-Length", buffer.length);
-										res.status(200).write(buffer);
-										resolve();
-									}
+								if(err){
+									reject(err);
+								}else{
+									res.setHeader("Content-Length", buffer.length);
+									res.status(200).write(buffer);
+									resolve();
+								}
 							});
 						});
 					}
@@ -242,34 +319,39 @@ module.exports = function(path, options){
 			}
 
 		}).then(function(){
-
+			
 			if(options["continue"]) next();
 			else res.end();
 
 		}).catch(function(err){
 
-			if(options["ignore-errors"]){
+			if(err.code === "IGNORE"){
 				res.status(404).end();
 			}else{
-				if(err.code === "ENOENT"){
+				if(options["ignore-errors"]){
 					res.status(404).end();
 				}else{
-					console.error(err);
-					res.status(500).end();
+					if(err.code === "ENOENT"){
+						res.status(404).end();
+					}else{
+						console.error(err);
+						res.status(500).end();
+					}
 				}
 			}
-
+			
 		});
 
 	};
-
+	
 	if(options["prepare-cache"]){
 		return new bluebird.Promise(function(res, rej){
-			var promises = [];
+			var files = [];
 			var finder = require("findit")(basePath);
 			finder.on("file", function(absolutePath, stat){
 
 				var ext = p.extname(absolutePath);
+				var fileName = p.basename(absolutePath);
 
 				fileObj = {
 					stat: stat,
@@ -277,20 +359,27 @@ module.exports = function(path, options){
 					extension: ext,
 					compressed: false,
 					absolutePath: absolutePath,
-					minified: p.basename(absolutePath).match(new RegExp("\.min" + ext, "gi"))
+					fileName: fileName,
+					minified: fileName.match(new RegExp("\.min" + ext, "gi"))
 				};
 
-				promises.push(processFile(fileObj));
+				files.push(fileObj);
 
 			});
 			finder.on("end", function(){
-				Promise.all(promises).then(function(){
+				bluebird.Promise.each(files, function(fileObj){
+					return processFile(fileObj).catch(function(err){
+						if(err.code != "IGNORE"){
+							throw err;
+						}
+					});
+				}).then(function(){
 					res(middleware);
 				});
 			});
 		});
 	}
-
+	
 	return middleware;
 
 };

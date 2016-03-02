@@ -13,6 +13,9 @@
 	"browser-cache": true,
 	"browser-cache-max-age": 300,
 	"browser-cache-s-maxage": 300,
-	"prepare-cache": false
+	"prepare-cache": false,
+	"hide-dotfiles": true,
+	"ignore": [],
+	"ignoreRegExp": []
 
 }
