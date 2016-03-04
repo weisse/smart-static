@@ -258,8 +258,6 @@ module.exports = function(path, options){
 
 		}).then(function(fileObj){
 			
-			res.setHeader("Content-Length", fileObj.contentLength);
-			
 			if(options["content-type"]){
 				res.setHeader("Content-Type", fileObj.contentType);
 			}
@@ -292,6 +290,8 @@ module.exports = function(path, options){
 					}
 			}
 
+			res.setHeader("Content-Length", fileObj.contentLength);
+			
 			if(options["compression"] && fileObj.compressed){
 					var accept = accepts(req);
 					var accepted = accept.encoding(["gzip"]);
