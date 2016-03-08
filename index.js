@@ -68,8 +68,11 @@ module.exports = function(path, options){
 				}
 			}
 			
-			for(var i  = 0; i < options.ignoreRegExp.length; i++){
-				var regexp = new RegExp(options.ignoreRegExp);
+			for(var i = 0; i < options.ignoreRegExp.length; i++){
+				var regexp = options.ignoreRegExp[i];
+				if(_.isString(regexp)){
+					regexp = new RegExp(regexp);
+				}
 				if(fileName.match(regexp)){
 					rej({code:"IGNORE"});
 				}
@@ -334,8 +337,8 @@ module.exports = function(path, options){
 					if(err.code === "ENOENT"){
 						res.status(404).end();
 					}else{
-						console.error(err);
-						res.status(500).end();
+						res.status(500);
+						next(err);
 					}
 				}
 			}
