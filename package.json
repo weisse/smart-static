@@ -1,11 +1,25 @@
 {
   "name": "speedy-static",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Serve your static files with an high-speed middleware",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [ 
+   	"middleware",
+   	"performance",
+   	"speed",
+   	"static",
+   	"compression",
+   	"minimization",
+   	"filesystem",
+   	"cache",
+   	"browser",
+   	"lru",
+   	"etag",
+   	"header"
+  ],
   "author": "Weisse",
   "license": "MIT",
   "dependencies": {
