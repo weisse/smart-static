@@ -34,15 +34,15 @@ module.exports = function(path, options){
 	});
 
 	var processFile = function(fileObj){
-		
+
 		return new bluebird.Promise(function(res, rej){
-			
+
 			/*
 			 * Check whether to ignore
 			 */
 			var absolutePath = fileObj.absolutePath;
 			var fileName = fileObj.fileName;
-			
+
 			for(var i = 0; i < options.ignore.length; i++){
 				var ignoreString = options.ignore[i];
 				if(fileName === ignoreString){
@@ -67,7 +67,7 @@ module.exports = function(path, options){
 					}
 				}
 			}
-			
+
 			for(var i = 0; i < options.ignoreRegExp.length; i++){
 				var regexp = options.ignoreRegExp[i];
 				if(_.isString(regexp)){
@@ -77,13 +77,13 @@ module.exports = function(path, options){
 					rej({code:"IGNORE"});
 				}
 			}
-			
+
 			res(fileObj);
-			
+
 		}).then(function(){
-			
+
 			return new bluebird.Promise(function(res, rej){
-				
+
 				/*
 				 * Check .dotfiles
 				 */
@@ -92,20 +92,20 @@ module.exports = function(path, options){
 						rej({code:"IGNORE"});
 					}
 				}
-				
+
 				res(fileObj);
-				
+
 			});
-			
+
 		}).then(function(fileObj){
-			
+
 			/*
 			 * Read file from fs
 			 */
 			return new bluebird.Promise(function(res, rej){
-				
+
 				var path = fileObj.absolutePath;
-				
+
 				fs.open(path, "r", function(err, fd){
 					if(err){
 						rej(err);
@@ -122,9 +122,9 @@ module.exports = function(path, options){
 						});
 					}
 				});
-				
+
 			});
-			
+
 		}).then(function(fileObj){
 
 			/*
@@ -209,9 +209,9 @@ module.exports = function(path, options){
 		});
 
 	};
-	
+
 	var middleware = function(req, res, next){
-		
+
 		var relativePath = req.path;
 		var absolutePath = p.join(basePath, relativePath);
 
@@ -243,7 +243,7 @@ module.exports = function(path, options){
 
 			var ext = p.extname(absolutePath);
 			var fileName = p.basename(absolutePath);
-			
+
 			fileObj = {
 				stat: statObj,
 				contentType: mimeTypes.contentType(ext),
@@ -260,11 +260,11 @@ module.exports = function(path, options){
 			return processFile(fileObj);
 
 		}).then(function(fileObj){
-			
-			if(options["content-type"]){
+
+			if(options["content-type"] && fileObj.contentType){
 				res.setHeader("Content-Type", fileObj.contentType);
 			}
-			
+
 			if(options["browser-cache"]){
 				res.setHeader(
 					"Cache-Control",
@@ -294,7 +294,7 @@ module.exports = function(path, options){
 			}
 
 			res.setHeader("Content-Length", fileObj.contentLength);
-			
+
 			if(options["compression"] && fileObj.compressed){
 					var accept = accepts(req);
 					var accepted = accept.encoding(["gzip"]);
@@ -322,7 +322,7 @@ module.exports = function(path, options){
 			}
 
 		}).then(function(){
-			
+
 			if(options["continue"]) next();
 			else res.end();
 
@@ -342,11 +342,11 @@ module.exports = function(path, options){
 					}
 				}
 			}
-			
+
 		});
 
 	};
-	
+
 	if(options["prepare-cache"]){
 		return new bluebird.Promise(function(res, rej){
 			var files = [];
@@ -382,7 +382,7 @@ module.exports = function(path, options){
 			});
 		});
 	}
-	
+
 	return middleware;
 
 };

@@ -1,24 +1,24 @@
 {
   "name": "speedy-static",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Serve your static files with an high-speed middleware",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha ./test/index.js"
   },
-  "keywords": [ 
-   	"middleware",
-   	"performance",
-   	"speed",
-   	"static",
-   	"compression",
-   	"minimization",
-   	"filesystem",
-   	"cache",
-   	"browser",
-   	"lru",
-   	"etag",
-   	"header"
+  "keywords": [
+    "middleware",
+    "performance",
+    "speed",
+    "static",
+    "compression",
+    "minimization",
+    "filesystem",
+    "cache",
+    "browser",
+    "lru",
+    "etag",
+    "header"
   ],
   "author": "Weisse",
   "license": "MIT",
@@ -34,5 +34,8 @@
     "uglify-js": "^2.6.1",
     "uglifycss": "0.0.20",
     "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "express": "^4.13.4"
   }
 }
