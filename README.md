@@ -1,7 +1,7 @@
 # speedy-static
 Serve your static files with an high-speed middleware
 
-[![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][travis-image]][travis-url]
+[![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Coverage Status](https://coveralls.io/repos/github/weisse/speedy-static/badge.svg?branch=master)](https://coveralls.io/github/weisse/speedy-static?branch=master)
 
 speedy-static is an high-speed middleware that allows you to serve files statically.
 It provides some useful options in order to make itself as near as possible to your needs.
