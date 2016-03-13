@@ -32,6 +32,11 @@ module.exports = function(path, options){
 		maxAge: options["max-cache-age"]
 
 	});
+	
+	/*
+	 * Where we will store our indexes path
+	 */
+	var indexMap = {};
 
 	var processFile = function(fileObj){
 
@@ -223,8 +228,53 @@ module.exports = function(path, options){
 			fs.stat(absolutePath, function(err, statObj){
 				if(err){
 					rej(err);
-				}else{
+				}else if(statObj.isFile()){
 					res(statObj);
+				}else if(statObj.isDirectory()){
+					new bluebird.Promise(function(mapRes, mapRej){
+						var entry = indexMap[absolutePath];
+						if(entry){
+							fs.stat(entry, function(err, mapStatObj){
+								if(err){
+									mapRej(err);
+								}else if(mapStatObj.isFile()){
+									absolutePath = entry;
+									mapRes(mapStatObj);
+								}else{
+									mapRej();
+								}
+							});
+						}else{
+							mapRej();
+						}
+					}).then(function(mapStatObj){
+						res(mapStatObj);
+					}).catch(function(){
+						var found = false;
+						bluebird.Promise.each(options.index, function(indexName){
+							var concatPath = p.join(absolutePath, indexName);
+							return new bluebird.Promise(function(subRes, subRej){
+								fs.stat(concatPath, function(err, subStatObj){
+									if(!err && subStatObj.isFile() && !found){
+										found = true;
+										indexMap[absolutePath] = concatPath;
+										absolutePath = concatPath;
+										subRes(subStatObj);
+									}else{
+										subRej();
+									}
+								});
+							}).then(function(subStatObj){
+								res(subStatObj);
+							}).catch(function(){
+								// handle but ignore
+							});
+						}).then(function(){
+							rej({code:"IGNORE"});
+						});
+					});
+				}else{
+					rej({code:"IGNORE"});
 				}
 			});
 
@@ -276,73 +326,71 @@ module.exports = function(path, options){
 			}
 
 			if(options["last-modified"]){
-					res.setHeader("Last-Modified", fileObj.stat.mtime.toGMTString());
-					var ifModifiedSince = req.get("if-modified-since");
-					if(ifModifiedSince === fileObj.stat.mtime.toString()){
-						res.status(304);
-						return;
-					}
+				res.setHeader("Last-Modified", fileObj.stat.mtime.toGMTString());
+				var ifModifiedSince = req.get("if-modified-since");
+				if(ifModifiedSince === fileObj.stat.mtime.toString()){
+					res.status(304);
+					return;
+				}
 			}
 
 			if(options["etag"]){
-					res.setHeader("ETag", fileObj.etag);
-					var ifNoneMatch = req.get("if-none-match");
-			 		if(ifNoneMatch === fileObj.etag){
-						res.status(304);
-						return;
-					}
+				res.setHeader("ETag", fileObj.etag);
+				var ifNoneMatch = req.get("if-none-match");
+		 		if(ifNoneMatch === fileObj.etag){
+					res.status(304);
+					return;
+				}
 			}
 
 			res.setHeader("Content-Length", fileObj.contentLength);
 
 			if(options["compression"] && fileObj.compressed){
-					var accept = accepts(req);
-					var accepted = accept.encoding(["gzip"]);
-					if(accepted){
-						res.setHeader("Content-Encoding", "gzip");
-						res.status(200).write(fileObj.data);
-					}else{
-						/*
-						 * Fallback for legacy compatibility
-						 */
-						return new bluebird.Promise(function(resolve, reject){
-							zlib.gunzip(fileObj.data, function(err, buffer){
-								if(err){
-									reject(err);
-								}else{
-									res.setHeader("Content-Length", buffer.length);
-									res.status(200).write(buffer);
-									resolve();
-								}
-							});
+				var accept = accepts(req);
+				var accepted = accept.encoding(["gzip"]);
+				if(accepted){
+					res.setHeader("Content-Encoding", "gzip");
+					res.status(200).write(fileObj.data);
+				}else{
+					/*
+					 * Fallback for legacy compatibility
+					 */
+					return new bluebird.Promise(function(resolve, reject){
+						zlib.gunzip(fileObj.data, function(err, buffer){
+							if(err){
+								reject(err);
+							}else{
+								res.setHeader("Content-Length", buffer.length);
+								res.status(200).write(buffer);
+								resolve();
+							}
 						});
-					}
+					});
+				}
 			}else{
 				res.status(200).write(fileObj.data);
 			}
 
-		}).then(function(){
-
-			if(options["continue"]) next();
-			else res.end();
-
 		}).catch(function(err){
-
-			if(err.code === "IGNORE"){
-				res.status(404).end();
+			if(err.code === "IGNORE" || err.code === "ENOENT" || options["ignore-errors"]){
+				res.status(404);
 			}else{
-				if(options["ignore-errors"]){
-					res.status(404).end();
-				}else{
-					if(err.code === "ENOENT"){
-						res.status(404).end();
-					}else{
-						res.status(500);
-						next(err);
-					}
-				}
+				res.status(500);
+				throw err;
 			}
-
+		}).then(function(){
+			if(options["continue"]){
+				next();
+			}else{
+				res.end();
+			}
+		}).catch(function(err){
+			if(options["continue"]){
+				next(err);
+			}else{
+				console.error(err);
+				res.end();
+			}
 		});
 
 	};
@@ -372,7 +420,7 @@ module.exports = function(path, options){
 			finder.on("end", function(){
 				bluebird.Promise.each(files, function(fileObj){
 					return processFile(fileObj).catch(function(err){
-						if(err.code != "IGNORE"){
+						if(err.code !== "IGNORE"){
 							throw err;
 						}
 					});

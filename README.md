@@ -58,6 +58,7 @@ The options allows you to make your tuning.
 
 Name | Description | Default
 ---|---|---
+index | It allows you to define your index files (it works for all the directories) | ["index.html", "index.htm"]
 compression | It allows you to serve files compressing them when possible | true
 compression-level | It defines the level of the compression [*0=BEST_SPEED,1=DEFAULT_COMRESSION,2=BEST_COMPRESSION*] | 1
 minify | It allows you to minimize source files when possibile [*.js,.css,.json*] | false
@@ -80,13 +81,19 @@ ignore-errors | It allows you to ignore server errors hiding them with a 404 | f
 
 ### Unit testing
 
-To test speedy-static be sure that mocha was installed. Otherwise you can install it typing
+To test speedy-static be sure that mocha was installed, otherwise you can install it typing
 
 ```bash
     npm install -g mocha
 ```
 
-Then, jump into speedy-static directory and type the following command.
+Be also sure that devDependencies was installed, otherwise you can install them jumping into speedy-static directory and typing
+
+```bash
+    npm install
+```
+
+Then, inside speedy-static directory type the following command.
 
 ```bash
     npm test

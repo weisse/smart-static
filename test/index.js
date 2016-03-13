@@ -41,6 +41,57 @@ describe("connection", function(){
 	});
 });
 
+describe("index", function(){
+	describe("[\"test\", \"source.js\"] on /", function(){
+		it("should return one of defined index file if exist", function(done, failed){
+			var middleware = speedyStatc(resolvePath("./examples"), {index: ["test", "source.js"]});
+			app.use("/index/oneOf", middleware);
+			doRequest("/index/oneOf", function(res){
+				if(res.statusCode === 200 && res.headers["content-length"] == source.SIZE){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+	});
+	describe("[\"source.js\", \"source.css\"] on /", function(){
+		it("should return the first match", function(done, failed){
+			var middleware = speedyStatc(resolvePath("./examples"), {index: ["source.js", "source.css"]});
+			app.use("/index/first", middleware);
+			doRequest("/index/first", function(res){
+				if(res.statusCode === 200 && res.headers["content-length"] == source.SIZE){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should return the stored index path", function(done, failed){
+			doRequest("/index/first", function(res){
+				if(res.statusCode === 200 && res.headers["content-length"] == source.SIZE){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+	});
+	describe("[\"source.js\", \"source.css\"] on /first", function(){
+		it("should return a 404 if no index resource was found", function(done, failed){
+			var middleware = speedyStatc(resolvePath("./examples"), {index: ["source.js", "source.css"]});
+			app.use("/index/notFound", middleware);
+			doRequest("/index/notFound/first", function(res){
+				if(res.statusCode === 404){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+	});
+});
+
 describe("compression", function(){
 	describe("true", function(){
 		it("should return compressed payload with \"Accept-Encoding: gzip\" header from the client", function(done, failed){

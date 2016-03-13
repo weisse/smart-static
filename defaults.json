@@ -1,5 +1,6 @@
 {
 
+	"index": ["index.html", "index.htm"],
 	"compression": true,
 	"compression-level": 1,
 	"minify": false,
