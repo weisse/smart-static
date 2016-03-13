@@ -83,10 +83,11 @@ ignore-errors | It allows you to ignore server errors hiding them with a 404 | f
 
 ### Unit testing
 
-To test speedy-static be sure that mocha was installed, otherwise you can install it typing
+To test speedy-static be sure that mocha and istanbul were installed, otherwise you can install them typing
 
 ```bash
     npm install -g mocha
+    npm install -g istanbul
 ```
 
 Be also sure that devDependencies was installed, otherwise you can install them jumping into speedy-static directory and typing
