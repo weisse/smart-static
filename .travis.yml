@@ -10,7 +10,9 @@ node_js:
   - "4.0"
   - "0.12"
   - "0.11"
-before_install: npm install -g mocha
+before_install:
+  - npm install -g mocha
+  - npm install -g coveralls
 install:
   - npm install
 after_success:
