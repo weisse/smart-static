@@ -4,7 +4,7 @@
   "description": "Serve your static files with an high-speed middleware",
   "main": "index.js",
   "scripts": {
-    "test": "mocha ./test/index.js"
+    "test": "istanbul cover -R _mocha ./test/index.js"
   },
   "keywords": [
     "middleware",
