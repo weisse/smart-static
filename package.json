@@ -1,6 +1,6 @@
 {
   "name": "speedy-static",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Serve your static files with an high-speed middleware",
   "main": "index.js",
   "scripts": {
@@ -28,15 +28,14 @@
     "compressible": "^2.0.7",
     "etag": "^1.7.0",
     "findit": "^2.0.0",
+    "lodash": "^4.6.1",
     "lru-cache": "^4.0.0",
     "mime-types": "^2.1.9",
     "numeraljs": "^1.5.6",
     "uglify-js": "^2.6.1",
-    "uglifycss": "0.0.20",
-    "underscore": "^1.8.3"
+    "uglifycss": "0.0.20"
   },
   "devDependencies": {
     "express": "^4.13.4"
   }
 }
-

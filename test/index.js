@@ -2,7 +2,7 @@ const assert = require("assert");
 const path = require("path");
 const http = require("http");
 const express = require("express");
-const _ = require("underscore");
+const _ = require("lodash");
 const bluebird = require("bluebird");
 const speedyStatc = require(path.resolve(__dirname, "../index.js"));
 const source = require(path.resolve(__dirname, "./examples/source.js"));
@@ -373,7 +373,7 @@ describe("content-type", function(){
 		});
 		it("should return an \"application/json\" Content-Type header from the server when a json file is requested", function(done, failed){
 			doRequest("/content-type/true/source.json", function(res){
-				if(res.headers["content-type"].startsWith("application/json")){
+				if(_.startsWith(res.headers["content-type"], "application/json")){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -382,7 +382,7 @@ describe("content-type", function(){
 		});
 		it("should return an \"application/javascript\" Content-Type header from the server when a js file is requested", function(done, failed){
 			doRequest("/content-type/true/source.js", function(res){
-				if(res.headers["content-type"].startsWith("application/javascript")){
+				if(_.startsWith(res.headers["content-type"], "application/javascript")){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -391,7 +391,7 @@ describe("content-type", function(){
 		});
 		it("should return an \"text/css\" Content-Type header from the server when a css file is requested", function(done, failed){
 			doRequest("/content-type/true/source.css", function(res){
-				if(res.headers["content-type"].startsWith("text/css")){
+				if(_.startsWith(res.headers["content-type"], "text/css")){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -400,7 +400,7 @@ describe("content-type", function(){
 		});
 		it("should return an \"text/html\" Content-Type header from the server when an html file is requested", function(done, failed){
 			doRequest("/content-type/true/source.html", function(res){
-				if(res.headers["content-type"].startsWith("text/html")){
+				if(_.startsWith(res.headers["content-type"], "text/html")){
 					done();
 				}else{
 					done(new Error("Test failed."));

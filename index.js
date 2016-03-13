@@ -2,7 +2,7 @@ const fs = require("fs");
 const p = require("path");
 const zlib = require("zlib");
 
-const _ = require("underscore");
+const _ = require("lodash");
 const lru = require("lru-cache");
 const bluebird = require("bluebird");
 const accepts = require("accepts");
@@ -63,10 +63,10 @@ module.exports = function(path, options){
 						/*
 						 * Maybe the path points on a directory
 						 */
-						if(!ignorePath.endsWith("/")){
+						if(!_.endsWith(ignorePath, "/")){
 							ignorePath = ignorePath + "/";
 						}
-						if((p.dirname(absolutePath) + "/").startsWith(ignorePath)){
+						if(_.startsWith((p.dirname(absolutePath) + "/"), ignorePath)){
 							rej({code:"IGNORE"});
 						}
 					}

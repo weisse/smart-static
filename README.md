@@ -1,6 +1,8 @@
 # speedy-static
 Serve your static files with an high-speed middleware
 
+[![Build Status][travis-image]][travis-url]
+
 speedy-static is an high-speed middleware that allows you to serve files statically.
 It provides some useful options in order to make itself as near as possible to your needs.
 
@@ -98,3 +100,6 @@ Then, inside speedy-static directory type the following command.
 ```bash
     npm test
 ```
+
+[travis-url]: https://travis-ci.org/weisse/speedy-static
+[travis-image]: https://img.shields.io/travis/weisse/speedy-static.svg
