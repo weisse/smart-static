@@ -6,6 +6,7 @@ Serve your static files with an high-speed middleware
 speedy-static is an high-speed middleware that allows you to serve files statically.
 It provides some useful options in order to make itself as near as possible to your needs.
 
+- [Changelog](#changelog)
 - [How it works](#how-it-works)
 - [How to install](#how-to-install)
 - [How to use it](#how-to-use-it)
@@ -13,6 +14,13 @@ It provides some useful options in order to make itself as near as possible to y
 - [Options](#options)
 - [Unit testing](#unit-testing)
 
+### <a id="changelog"></a> ChangeLog
+- 0.3.0 - Auto-compilation of ".less", ".coffee", ".cson" and ".yaml"
+- 0.2.3 - Index option implemented
+- 0.1.7 - Hide dotfiles option implemented
+- 0.1.6 - numeraljs format supported by max-cache-size option
+- 0.1.4 - JSON minimization
+- 0.1.3 - Cache-Control header, s-maxage implemented
 
 ### <a id="how-it-works"></a> How it works
 
