@@ -6,7 +6,15 @@ Serve your static files with an high-speed middleware
 speedy-static is an high-speed middleware that allows you to serve files statically.
 It provides some useful options in order to make itself as near as possible to your needs.
 
-### How it works
+- [How it works](#how-it-works)
+- [How to install](#how-to-install)
+- [How to use it](#how-to-use-it)
+- [API](#api)
+- [Options](#options)
+- [Unit testing](#unit-testing)
+
+
+### <a id="how-it-works"></a> How it works
 
 speedy-static is fully optimized to reach the best performance in serving static resources.
 
@@ -22,13 +30,12 @@ The client side optimizations:
 * prevent the browser to frequently ask the server to validate resources using a validation time
 
 
-### How to install
+### <a id="how-to-install"></a> How to install
 ```bash
     npm install speedy-static
 ```
 
-
-### How to use it
+### <a id="how-to-use-it"></a> How to use it
 ```javascript
     var express = require("express");
     var app = express();
@@ -48,15 +55,14 @@ The client side optimizations:
                 });
 ```
 
-
-### API
+### <a id="api"></a> API
 
 #### speedyStatic(pathToMount[, options]);
 The path to mount is the root path of the static files you want to serve.
 The options allows you to make your tuning.
 
 
-### Options
+### <a id="options"></a> Options
 
 Name | Description | Default
 ---|---|---
@@ -81,7 +87,7 @@ continue | It allows you to pass the request to the next middleware instead of e
 ignore-errors | It allows you to ignore server errors hiding them with a 404 | false
 
 
-### Unit testing
+### <a id="unit-testing"></a> Unit testing
 
 To test speedy-static be sure that mocha and istanbul were installed, otherwise you can install them typing
 
@@ -101,6 +107,11 @@ Then, inside speedy-static directory type the following command.
 ```bash
     npm test
 ```
+
+### Licence
+
+Licenced under MIT<br/>
+Copyright (c) 2016 - [Pietro Cucinella](https://github.com/weisse)
 
 [npm-url]: https://www.npmjs.com/package/speedy-static
 [npm-image]: https://img.shields.io/npm/v/speedy-static.svg
