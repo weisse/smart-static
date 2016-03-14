@@ -5,7 +5,13 @@ const express = require("express");
 const _ = require("lodash");
 const bluebird = require("bluebird");
 const speedyStatc = require(path.resolve(__dirname, "../index.js"));
-const source = require(path.resolve(__dirname, "./examples/source.js"));
+const sourceJSPath = path.resolve(__dirname, "./examples/source.js");
+const sourceCSSPath = path.resolve(__dirname, "./examples/source.css");
+const sourceJSONPath = path.resolve(__dirname, "./examples/source.json");
+const sourceInfo = require(path.resolve(__dirname, "./examples/sourceInfo.js"));
+const sourceJS = require(sourceJSPath);
+const sourceCSS = sourceInfo(sourceCSSPath);
+const sourceJSON = sourceInfo(sourceJSONPath);
 const resolvePath = function(relative){
 	return path.resolve(__dirname, relative);
 };
@@ -76,7 +82,7 @@ describe("index", function(){
 			var middleware = speedyStatc(resolvePath("./examples"), {index: ["test", "source.js"]});
 			app.use("/index/oneOf", middleware);
 			doRequest("/index/oneOf", function(res){
-				if(res.statusCode === 200 && res.headers["content-length"] == source.SIZE){
+				if(res.statusCode === 200 && res.headers["content-length"] == sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -89,7 +95,7 @@ describe("index", function(){
 			var middleware = speedyStatc(resolvePath("./examples"), {index: ["source.js", "source.css"]});
 			app.use("/index/first", middleware);
 			doRequest("/index/first", function(res){
-				if(res.statusCode === 200 && res.headers["content-length"] == source.SIZE){
+				if(res.statusCode === 200 && res.headers["content-length"] == sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -98,7 +104,7 @@ describe("index", function(){
 		});
 		it("should return the stored index path", function(done, failed){
 			doRequest("/index/first", function(res){
-				if(res.statusCode === 200 && res.headers["content-length"] == source.SIZE){
+				if(res.statusCode === 200 && res.headers["content-length"] == sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -131,7 +137,7 @@ describe("compression", function(){
 					"Accept-Encoding":"gzip"
 				}
 			}, function(res){
-				if(res.headers["content-length"] < source.SIZE){
+				if(res.headers["content-length"] < sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -146,7 +152,7 @@ describe("compression", function(){
 					"Accept-Encoding":""
 				}
 			}, function(res){
-				if(res.headers["content-length"] == source.SIZE){
+				if(res.headers["content-length"] == sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -163,7 +169,7 @@ describe("compression", function(){
 					"Accept-Encoding":"gzip"
 				}
 			}, function(res){
-				if(res.headers["content-length"] == source.SIZE){
+				if(res.headers["content-length"] == sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -178,7 +184,7 @@ describe("compression", function(){
 					"Accept-Encoding":""
 				}
 			}, function(res){
-				if(res.headers["content-length"] == source.SIZE){
+				if(res.headers["content-length"] == sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -190,7 +196,7 @@ describe("compression", function(){
 
 describe("compression-level", function(){
 	describe("BEST_SPEED", function(){
-		it("should return equals to " + source.BEST_SPEED_SIZE + " bytes of payload", function(done, failed){
+		it("should return equals to " + sourceJS.BEST_SPEED_SIZE + " bytes of payload", function(done, failed){
 			var middleware = speedyStatc(resolvePath("./examples"), {compression:true, minify:false, "compression-level":0});
 			app.use("/compression-level/BEST_SPEED", middleware);
 			doRequest("/compression-level/BEST_SPEED/source.js", {
@@ -198,7 +204,7 @@ describe("compression-level", function(){
 					"Accept-Encoding":"gzip"
 				}
 			}, function(res){
-				if(res.headers["content-length"] == source.BEST_SPEED_SIZE){
+				if(res.headers["content-length"] == sourceJS.BEST_SPEED_SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -207,7 +213,7 @@ describe("compression-level", function(){
 		});
 	});
 	describe("DEFAULT_COMPRESSION", function(){
-		it("should return equals to " + source.DEFAULT_COMPRESSION_SIZE + " bytes of payload", function(done, failed){
+		it("should return equals to " + sourceJS.DEFAULT_COMPRESSION_SIZE + " bytes of payload", function(done, failed){
 			var middleware = speedyStatc(resolvePath("./examples"), {compression:true, minify:false, "compression-level":1});
 			app.use("/compression-level/DEFAULT_COMPRESSION", middleware);
 			doRequest("/compression-level/DEFAULT_COMPRESSION/source.js", {
@@ -215,7 +221,7 @@ describe("compression-level", function(){
 					"Accept-Encoding":"gzip"
 				}
 			}, function(res){
-				if(res.headers["content-length"] == source.DEFAULT_COMPRESSION_SIZE){
+				if(res.headers["content-length"] == sourceJS.DEFAULT_COMPRESSION_SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -224,7 +230,7 @@ describe("compression-level", function(){
 		});
 	});
 	describe("BEST_COMPRESSION", function(){
-		it("should return equals to " + source.BEST_COMPRESSION_SIZE + " bytes of payload", function(done, failed){
+		it("should return equals to " + sourceJS.BEST_COMPRESSION_SIZE + " bytes of payload", function(done, failed){
 			var middleware = speedyStatc(resolvePath("./examples"), {compression:true, minify:false, "compression-level":2});
 			app.use("/compression-level/BEST_COMPRESSION", middleware);
 			doRequest("/compression-level/BEST_COMPRESSION/source.js", {
@@ -232,7 +238,7 @@ describe("compression-level", function(){
 					"Accept-Encoding":"gzip"
 				}
 			}, function(res){
-				if(res.headers["content-length"] == source.BEST_COMPRESSION_SIZE){
+				if(res.headers["content-length"] == sourceJS.BEST_COMPRESSION_SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -249,7 +255,7 @@ describe("compression-level", function(){
 					"Accept-Encoding":"gzip"
 				}
 			}, function(res){
-				if(res.headers["content-length"] == source.DEFAULT_COMPRESSION_SIZE){
+				if(res.headers["content-length"] == sourceJS.DEFAULT_COMPRESSION_SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -261,22 +267,40 @@ describe("compression-level", function(){
 
 describe("minify", function(){
 	describe("true", function(){
-		it("should minimize source files", function(done, failed){
+		it("should minimize js source files", function(done, failed){
 			var middleware = speedyStatc(resolvePath("./examples"), {compression:false, "minify":true, "minify-mangle":false});
 			app.use("/minify/true", middleware);
 			doRequest("/minify/true/source.js", function(res){
-				if(res.headers["content-length"] == source.MINIMIZED_SIZE){
+				if(res.headers["content-length"] == sourceJS.MINIMIZED_SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
 				}
 			});
 		});
-		it("should not minimize already minimized source files", function(done, failed){
+		it("should minimize css source files", function(done, failed){
+			doRequest("/minify/true/source.css", function(res){
+				if(res.headers["content-length"] < sourceCSS.SIZE){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should minimize json source files", function(done, failed){
+			doRequest("/minify/true/source.json", function(res){
+				if(res.headers["content-length"] < sourceJSON.SIZE){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should not minimize resources declared as minimized (files that contains the word \".min\" before the extensions)", function(done, failed){
 			var middleware = speedyStatc(resolvePath("./examples"), {compression:false, "minify":true, "minify-mangle":false});
 			app.use("/minify/true", middleware);
-			doRequest("/minify/true/source.min.js", function(res){
-				if(res.headers["content-length"] == source.SIZE){
+			doRequest("/minify/true/source.fake.min.js", function(res){
+				if(res.headers["content-length"] == sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -289,7 +313,7 @@ describe("minify", function(){
 			var middleware = speedyStatc(resolvePath("./examples"), {compression:false, "minify":false});
 			app.use("/minify/false", middleware);
 			doRequest("/minify/false/source.js", function(res){
-				if(res.headers["content-length"] == source.SIZE){
+				if(res.headers["content-length"] == sourceJS.SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -301,11 +325,11 @@ describe("minify", function(){
 
 describe("minify-mangle", function(){
 	describe("true", function(){
-		it("should return equals to " + source.MINIMIZED_MANGLED_SIZE + " bytes of payload", function(done, failed){
+		it("should return equals to " + sourceJS.MINIMIZED_MANGLED_SIZE + " bytes of payload", function(done, failed){
 			var middleware = speedyStatc(resolvePath("./examples"), {compression:false, "minify":true, "minify-mangle":true});
 			app.use("/mangle/true", middleware);
 			doRequest("/mangle/true/source.js", function(res){
-				if(res.headers["content-length"] == source.MINIMIZED_MANGLED_SIZE){
+				if(res.headers["content-length"] == sourceJS.MINIMIZED_MANGLED_SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -314,11 +338,11 @@ describe("minify-mangle", function(){
 		});
 	});
 	describe("false", function(){
-		it("should return equals to " + source.MINIMIZED_SIZE + " bytes of payload", function(done, failed){
+		it("should return equals to " + sourceJS.MINIMIZED_SIZE + " bytes of payload", function(done, failed){
 			var middleware = speedyStatc(resolvePath("./examples"), {compression:false, "minify":true, "minify-mangle":false});
 			app.use("/mangle/false", middleware);
 			doRequest("/mangle/false/source.js", function(res){
-				if(res.headers["content-length"] == source.MINIMIZED_SIZE){
+				if(res.headers["content-length"] == sourceJS.MINIMIZED_SIZE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -343,7 +367,7 @@ describe("etag", function(){
 		});
 		it("should return an ETag header from the server generated with the payload", function(done, failed){
 			doRequest("/etag/true/source.js", function(res){
-				if(res.headers["etag"] == source.ETAG){
+				if(res.headers["etag"] == sourceJS.ETAG){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -353,7 +377,7 @@ describe("etag", function(){
 		it("should return a 304 when a If-None-Match was sent and matches with the ETag", function(done, failed){
 			doRequest("/etag/true/source.js", {
 					headers: {
-						"If-None-Match": source.ETAG
+						"If-None-Match": sourceJS.ETAG
 					}
 				}, function(res){
 				if(res.statusCode == 304){
@@ -394,7 +418,7 @@ describe("last-modified", function(){
 		});
 		it("should return a Last-Modified header date equals to the last modification date got from the filesystem", function(done, failed){
 			doRequest("/last-modified/true/source.js", function(res){
-				if(res.headers["last-modified"] === source.LAST_MODIFICATION_DATE){
+				if(res.headers["last-modified"] === sourceJS.LAST_MODIFICATION_DATE){
 					done();
 				}else{
 					done(new Error("Test failed."));
@@ -404,7 +428,7 @@ describe("last-modified", function(){
 		it("should return a 304 when a If-Modified-Since was sent and matches with the last modification date got from the filesystem", function(done, failed){
 			doRequest("/last-modified/true/source.js",{
 					headers: {
-						"If-Modified-Since": source.LAST_MODIFICATION_DATE
+						"If-Modified-Since": sourceJS.LAST_MODIFICATION_DATE
 					}
 				}, function(res){
 					if(res.statusCode == 304){
