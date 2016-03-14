@@ -41,6 +41,35 @@ describe("connection", function(){
 	});
 });
 
+describe("options", function(){
+	describe("not provided", function(){
+		it("should not throw any exception", function(done, failed){
+			try{
+				var middleware = speedyStatc(resolvePath("./examples"));
+				done();
+			}catch(e){
+				done(e);
+			}
+		});
+	});
+});
+
+describe("request", function(){
+	describe("non existent resource", function(){
+		it("should return a 404 and an empty payload", function(done, failed){
+			var middleware = speedyStatc(resolvePath("./examples"));
+			app.use("/request/nonExistentResource", middleware);
+			doRequest("/request/nonExistentResource/not_existent", function(res){
+				if(res.statusCode === 404 && res.headers["content-length"] == "0"){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+	});
+});
+
 describe("index", function(){
 	describe("[\"test\", \"source.js\"] on /", function(){
 		it("should return one of defined index file if exist", function(done, failed){
@@ -211,6 +240,23 @@ describe("compression-level", function(){
 			});
 		});
 	});
+	describe("NON_EXISTENT_COMPRESSION_LEVEL", function(){
+		it("should make default compression", function(done, failed){
+			var middleware = speedyStatc(resolvePath("./examples"), {compression:true, minify:false, "compression-level":5});
+			app.use("/compression-level/NON_EXISTENT_COMPRESSION_LEVEL", middleware);
+			doRequest("/compression-level/NON_EXISTENT_COMPRESSION_LEVEL/source.js", {
+				headers:{
+					"Accept-Encoding":"gzip"
+				}
+			}, function(res){
+				if(res.headers["content-length"] == source.DEFAULT_COMPRESSION_SIZE){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+	});
 });
 
 describe("minify", function(){
@@ -304,6 +350,19 @@ describe("etag", function(){
 				}
 			});
 		});
+		it("should return a 304 when a If-None-Match was sent and matches with the ETag", function(done, failed){
+			doRequest("/etag/true/source.js", {
+					headers: {
+						"If-None-Match": source.ETAG
+					}
+				}, function(res){
+				if(res.statusCode == 304){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
 	});
 	describe("false", function(){
 		it("should not return an ETag header from the server", function(done, failed){
@@ -340,6 +399,19 @@ describe("last-modified", function(){
 				}else{
 					done(new Error("Test failed."));
 				}
+			});
+		});
+		it("should return a 304 when a If-Modified-Since was sent and matches with the last modification date got from the filesystem", function(done, failed){
+			doRequest("/last-modified/true/source.js",{
+					headers: {
+						"If-Modified-Since": source.LAST_MODIFICATION_DATE
+					}
+				}, function(res){
+					if(res.statusCode == 304){
+						done();
+					}else{
+						done(new Error("Test failed."));
+					}
 			});
 		});
 	});
@@ -571,9 +643,9 @@ describe("ignore", function(){
 			});
 		});
 	});
-	describe("[\"fileNameToIgnore.ign\", \"anotherToIgnore\"]", function(){
+	describe("[\"fileNameToIgnore.ign\", \"" + "./anotherToIgnore\"]", function(){
 		it("should ignore resources whose name is one of the declared", function(done, failed){
-			var middleware = speedyStatc(resolvePath("./examples"), {"ignore":["fileNameToIgnore.ign", "anotherToIgnore"]});
+			var middleware = speedyStatc(resolvePath("./examples"), {"ignore":["fileNameToIgnore.ign", "./first/anotherToIgnore"]});
 			app.use("/ignore/files", middleware);
 			doRequest("/ignore/files/fileNameToIgnore.ign", function(res){
 				if(res.statusCode === 404){

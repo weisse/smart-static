@@ -32,7 +32,7 @@ module.exports = function(path, options){
 		maxAge: options["max-cache-age"]
 
 	});
-	
+
 	/*
 	 * Where we will store our indexes path
 	 */
@@ -326,9 +326,10 @@ module.exports = function(path, options){
 			}
 
 			if(options["last-modified"]){
-				res.setHeader("Last-Modified", fileObj.stat.mtime.toGMTString());
+				var lastModified = fileObj.stat.mtime.toGMTString();
+				res.setHeader("Last-Modified", lastModified);
 				var ifModifiedSince = req.get("if-modified-since");
-				if(ifModifiedSince === fileObj.stat.mtime.toString()){
+				if(ifModifiedSince === lastModified){
 					res.status(304);
 					return;
 				}
