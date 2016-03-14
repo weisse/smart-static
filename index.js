@@ -12,7 +12,12 @@ const etag = require("etag");
 const uglifyjs = require("uglify-js");
 const uglifycss = require("uglifycss");
 const numeraljs = require("numeraljs");
+const LESS = require("less");
+const CoffeeScript = require("coffee-script");
+const CSON = require("cson");
+const YAML = require("yamljs");
 
+const compilable = [".less", ".coffee", ".cson", ".yml"];
 const defaults = require(p.join(__dirname, "./defaults.json"));
 const compressionLevels = [zlib.Z_BEST_SPEED, zlib.Z_DEFAULT_COMPRESSION, zlib.Z_BEST_COMPRESSION];
 
@@ -20,6 +25,7 @@ module.exports = function(path, options){
 
 	if(!options) options = {};
 	options = _.extend(defaults, options);
+	options.compile = _.intersection(compilable, options.compile);
 
 	var basePath = p.resolve(process.cwd(), path);
 
@@ -130,6 +136,56 @@ module.exports = function(path, options){
 
 			});
 
+		}).then(function(fileObj){
+			
+			/*
+			 * Compile where possible and requested
+			 */
+			if(_.indexOf(options.compile, fileObj.extension) > -1){
+				switch(fileObj.extension){
+					case ".less":
+						return new bluebird.Promise(function(res, rej){
+							LESS.render(fileObj.data.toString("utf8"), {
+								
+								filename: fileObj.absolutePath
+								
+							}, function(err, output){
+								if(err){
+									rej(err);
+								}else{									
+									fileObj.data = new Buffer(output.css, "utf8");
+									fileObj.extension = ".css";
+									fileObj.contentType = mimeTypes.contentType(fileObj.extension);
+									res(fileObj);
+								}
+							});
+						});
+						
+					case ".coffee":
+						fileObj.data = new Buffer(CoffeeScript.compile(fileObj.data.toString("utf8")), "utf8");
+						fileObj.extension = ".js";
+						fileObj.contentType = mimeTypes.contentType(fileObj.extension);
+						return fileObj;
+					
+					case ".cson":
+						fileObj.data = new Buffer(JSON.stringify(CSON.parse(fileObj.data.toString("utf8"))), "utf8");
+						fileObj.extension = ".json";
+						fileObj.contentType = mimeTypes.contentType(fileObj.extension);
+						fileObj.minified = true;
+						return fileObj;
+					
+					case ".yml":
+						fileObj.data = new Buffer(JSON.stringify(YAML.parse(fileObj.data.toString("utf8"))), "utf8");
+						fileObj.extension = ".json";
+						fileObj.contentType = mimeTypes.contentType(fileObj.extension);
+						fileObj.minified = true;
+						return fileObj;
+					
+				}
+			}else{
+				return fileObj;
+			}
+			
 		}).then(function(fileObj){
 
 			/*

@@ -2,6 +2,7 @@
 
 	"firstname": "Pietro",
 	"lastname": "Cucinella",
-	"age": 23
-
+	"age": 23,
+	"hobbies": ["coding", "football", "music"]
+	
 }

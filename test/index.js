@@ -265,6 +265,49 @@ describe("compression-level", function(){
 	});
 });
 
+describe("compile", function(){
+	describe("[\".less\", \".coffee\", \".cson\", \".yml\"]", function(){
+		it("should compile less source files into css", function(done, failed){
+			var middleware = speedyStatc(resolvePath("./examples"));
+			app.use("/compile", middleware);
+			doRequest("/compile/bootstrap_3_3_6_less/bootstrap.less", function(res){
+				if(_.startsWith(res.headers["content-type"], "text/css")){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should compile coffee source files into javascript", function(done, failed){
+			doRequest("/compile/source.coffee", function(res){
+				if(_.startsWith(res.headers["content-type"], "application/javascript")){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should compile cson source files into json", function(done, failed){
+			doRequest("/compile/source.cson", function(res){
+				if(_.startsWith(res.headers["content-type"], "application/json")){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should compile yaml source files into json", function(done, failed){
+			doRequest("/compile/source.yml", function(res){
+				if(_.startsWith(res.headers["content-type"], "application/json")){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+	});
+});
+
 describe("minify", function(){
 	describe("true", function(){
 		it("should minimize js source files", function(done, failed){
@@ -531,7 +574,7 @@ describe("content-type", function(){
 describe("prepare-cache", function(){
 	describe("true", function(){
 		it("should return a promise that gives you the middleware as soon as the cache was prepared", function(done, failed){
-			var returned = speedyStatc(resolvePath("./examples"), {"prepare-cache":true});
+			var returned = speedyStatc(resolvePath("./examples"), {"prepare-cache":true, ignore:["./bootstrap_3_3_6_less"]});
 			if(returned instanceof bluebird.Promise){
 				returned.then(function(middleware){
 					if(_.isFunction(middleware)){

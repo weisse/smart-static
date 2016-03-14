@@ -1,6 +1,7 @@
 {
 
 	"index": ["index.html", "index.htm"],
+	"compile": [".less", ".coffee", ".cson", ".yml"],
 	"compression": true,
 	"compression-level": 1,
 	"minify": false,
