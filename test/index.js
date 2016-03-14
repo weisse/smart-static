@@ -60,7 +60,7 @@ describe("request", function(){
 			var middleware = speedyStatc(resolvePath("./examples"));
 			app.use("/request/nonExistentResource", middleware);
 			doRequest("/request/nonExistentResource/not_existent", function(res){
-				if(res.statusCode === 404 && res.headers["content-length"] == "0"){
+				if(res.statusCode === 404 && (!res.headers["content-length"] || res.headers["content-length"] == 0)){
 					done();
 				}else{
 					done(new Error("Test failed."));
