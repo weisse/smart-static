@@ -127,10 +127,53 @@ describe("index", function(){
 	});
 });
 
+describe("download", function(){
+	describe("[\"./first\", \"source.js\"]", function(){
+		it("should return content-disposition header when I request for /source.js", function(done, failed){
+			var middleware = speedyStatc(resolvePath("./examples"), {download: ["./first", "source.js"]});
+			app.use("/download/true", middleware);
+			doRequest("/download/true/source.js", function(res){
+				if(res.statusCode === 200 && res.headers["content-disposition"] === "attachment; filename=source.js"){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should return content-disposition header when I request for /first/anotherToIgnore", function(done, failed){
+			doRequest("/download/true/first/anotherToIgnore", function(res){
+				if(res.statusCode === 200 && res.headers["content-disposition"] === "attachment; filename=anotherToIgnore"){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should return content-disposition header when I request for /first/path/to/ignore/test", function(done, failed){
+			doRequest("/download/true/first/path/to/ignore/test", function(res){
+				if(res.statusCode === 200 && res.headers["content-disposition"] === "attachment; filename=test"){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+		it("should not return content-disposition header when I request for /source.yml", function(done, failed){
+			doRequest("/download/true/source.yml", function(res){
+				if(res.statusCode === 200 && !res.headers["content-disposition"]){
+					done();
+				}else{
+					done(new Error("Test failed."));
+				}
+			});
+		});
+	});
+});
+
 describe("compression", function(){
 	describe("true", function(){
 		it("should return compressed payload with \"Accept-Encoding: gzip\" header from the client", function(done, failed){
-			var middleware = speedyStatc(resolvePath("./examples"), {compression:true, minify:false});
+			var middleware = speedyStatc(resolvePath("./examples"), {compression:true, minify:false, download:[]});
 			app.use("/compression/true/withHeader", middleware);
 			doRequest("/compression/true/withHeader/source.js", {
 				headers:{

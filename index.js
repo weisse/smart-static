@@ -27,9 +27,9 @@ module.exports = function(path, options){
 	options = _.extend(defaults, options);
 	options.compile = _.intersection(compilable, options.compile);
 
-	var basePath = p.resolve(process.cwd(), path);
+	const basePath = p.resolve(process.cwd(), path);
 
-	var cache = lru({
+	const cache = lru({
 
 		length: function(element, key){
 			return element.data.length;
@@ -38,240 +38,306 @@ module.exports = function(path, options){
 		maxAge: options["max-cache-age"]
 
 	});
-
-	/*
-	 * Where we will store our indexes path
-	 */
-	var indexMap = {};
-
-	var processFile = function(fileObj){
-
-		return new bluebird.Promise(function(res, rej){
-
-			/*
-			 * Check whether to ignore
-			 */
-			var absolutePath = fileObj.absolutePath;
-			var fileName = fileObj.fileName;
-
-			for(var i = 0; i < options.ignore.length; i++){
-				var ignoreString = options.ignore[i];
-				if(fileName === ignoreString){
-					rej({code:"IGNORE"});
+	
+	const checkStringMatch = function(fileName, absolutePath, stringArray){
+		
+		for(var i = 0; i < stringArray.length; i++){
+			var string = stringArray[i];
+			if(fileName === string){
+				return true;
+			}else{
+				/*
+				 * Absolutize path to ignore
+				 */
+				var stringPath = p.join(basePath, string);
+				if(absolutePath === stringPath){
+					return true;
 				}else{
 					/*
-					 * Absolutize path to ignore
+					 * Maybe the path points on a directory
 					 */
-					var ignorePath = p.resolve(basePath, ignoreString);
-					if(absolutePath === ignorePath){
-						rej({code:"IGNORE"});
-					}else{
-						/*
-						 * Maybe the path points on a directory
-						 */
-						if(!_.endsWith(ignorePath, "/")){
-							ignorePath = ignorePath + "/";
-						}
-						if(_.startsWith((p.dirname(absolutePath) + "/"), ignorePath)){
-							rej({code:"IGNORE"});
-						}
+					if(!_.endsWith(stringPath, "/")){
+						stringPath = stringPath + "/";
+					}
+					if(_.startsWith((p.dirname(absolutePath) + "/"), stringPath)){
+						return true;
 					}
 				}
 			}
+		}
+		
+		return false;
+		
+	};
 
-			for(var i = 0; i < options.ignoreRegExp.length; i++){
-				var regexp = options.ignoreRegExp[i];
-				if(_.isString(regexp)){
-					regexp = new RegExp(regexp);
-				}
-				if(fileName.match(regexp)){
-					rej({code:"IGNORE"});
-				}
+	const checkRegExpMatch = function(fileName, regExpArray){
+		
+		for(var i = 0; i < regExpArray.length; i++){
+			var regexp = regExpArray[i];
+			if(_.isString(regexp)){
+				regexp = new RegExp(regexp);
 			}
-
-			res(fileObj);
-
-		}).then(function(){
-
-			return new bluebird.Promise(function(res, rej){
-
-				/*
-				 * Check .dotfiles
-				 */
-				if(fileObj.fileName.substring(0, 1) === "."){
-					if(options["hide-dotfiles"]){
-						rej({code:"IGNORE"});
-					}
-				}
-
-				res(fileObj);
-
-			});
-
-		}).then(function(fileObj){
-
-			/*
-			 * Read file from fs
-			 */
-			return new bluebird.Promise(function(res, rej){
-
-				var path = fileObj.absolutePath;
-
-				fs.open(path, "r", function(err, fd){
-					if(err){
-						rej(err);
-					}else{
-						fs.readFile(path, function(err, buffer){
-							fs.close(fd);
-							if(err){
-								rej(err);
-							}else{
-								fileObj.data = buffer;
-								fileObj.contentLength = buffer.length;
-								res(fileObj);
-							}
-						});
-					}
-				});
-
-			});
-
-		}).then(function(fileObj){
-			
-			/*
-			 * Compile where possible and requested
-			 */
-			if(_.indexOf(options.compile, fileObj.extension) > -1){
-				switch(fileObj.extension){
-					case ".less":
-						return new bluebird.Promise(function(res, rej){
-							LESS.render(fileObj.data.toString("utf8"), {
-								
-								filename: fileObj.absolutePath
-								
-							}, function(err, output){
-								if(err){
-									rej(err);
-								}else{									
-									fileObj.data = new Buffer(output.css, "utf8");
-									fileObj.extension = ".css";
-									fileObj.contentType = mimeTypes.contentType(fileObj.extension);
-									res(fileObj);
-								}
-							});
-						});
-						
-					case ".coffee":
-						fileObj.data = new Buffer(CoffeeScript.compile(fileObj.data.toString("utf8")), "utf8");
-						fileObj.extension = ".js";
-						fileObj.contentType = mimeTypes.contentType(fileObj.extension);
-						return fileObj;
-					
-					case ".cson":
-						fileObj.data = new Buffer(JSON.stringify(CSON.parse(fileObj.data.toString("utf8"))), "utf8");
-						fileObj.extension = ".json";
-						fileObj.contentType = mimeTypes.contentType(fileObj.extension);
-						fileObj.minified = true;
-						return fileObj;
-					
-					case ".yml":
-						fileObj.data = new Buffer(JSON.stringify(YAML.parse(fileObj.data.toString("utf8"))), "utf8");
-						fileObj.extension = ".json";
-						fileObj.contentType = mimeTypes.contentType(fileObj.extension);
-						fileObj.minified = true;
-						return fileObj;
-					
-				}
-			}else{
-				return fileObj;
+			if(fileName.match(regexp)){
+				return true;
 			}
-			
-		}).then(function(fileObj){
+		}
+		
+		return false;
+		
+	};
+	
+	const ignore = function(fileObj){
+		
+		/*
+		 * Check whether to ignore
+		 */
+		var absolutePath = fileObj.absolutePath;
+		var fileName = fileObj.fileName;
 
-			/*
-			 * Minify where possible and requested
-			 */
-			if(options.minify && !fileObj.minified){
-				switch(fileObj.extension){
-					case ".js":
-						try{
-							var minified = uglifyjs.minify(fileObj.data.toString("utf8"), {
-								mangle:options["minify-mangle"],
-								fromString:true
-							});
-							fileObj.data = new Buffer(minified.code, "utf8");
-							fileObj.contentLength = fileObj.data.length;
-							fileObj.minified = true;
-						}catch(e){}
-					break;
-					case ".css":
-						try{
-							var minified = uglifycss.processString(fileObj.data.toString("utf8"));
-							fileObj.data = new Buffer(minified, "utf8");
-							fileObj.contentLength = fileObj.data.length;
-							fileObj.minified = true;
-						}catch(e){}
-					break;
-					case ".json":
-						try{
-							var minified = JSON.stringify(JSON.parse(fileObj.data.toString("utf8")));
-							fileObj.data = new Buffer(minified, "utf8");
-							fileObj.contentLength = fileObj.data.length;
-							fileObj.minified = true;
-						}catch(e){}
-					break;
-				}
+		if(checkStringMatch(fileName, absolutePath, options.ignore)){
+			throw {code:"IGNORE"};
+		}
+
+		if(checkRegExpMatch(fileName, options.ignoreRegExp)){
+			throw {code:"IGNORE"};
+		}
+
+		return fileObj;
+		
+	};
+	
+	const dotfiles = function(fileObj){
+		
+		/*
+		 * Check .dotfiles
+		 */
+		if(fileObj.fileName.substring(0, 1) === "."){
+			if(options["hide-dotfiles"]){
+				throw {code:"IGNORE"};
 			}
+		}
 
-			return fileObj;
+		return fileObj;
+		
+	};
+	
+	const fetch = function(fileObj){
+		
+		/*
+		 * Read file from fs
+		 */
+		return new bluebird.Promise(function(res, rej){
 
-		}).then(function(fileObj){
+			var path = fileObj.absolutePath;
 
-			/*
-			 * Compress using gzip
-			 */
-			if(options.compression && compressible(fileObj.contentType)){
-				return new bluebird.Promise(function(res, rej){
-					var compressionLevel = compressionLevels[options["compression-level"]] || zlib.Z_DEFAULT_COMPRESSION;
-					zlib.gzip(fileObj.data, {level:compressionLevel}, function(err, buffer){
+			fs.open(path, "r", function(err, fd){
+				if(err){
+					rej(err);
+				}else{
+					fs.readFile(path, function(err, buffer){
+						fs.close(fd);
 						if(err){
 							rej(err);
 						}else{
 							fileObj.data = buffer;
 							fileObj.contentLength = buffer.length;
-							fileObj.compressed = true;
 							res(fileObj);
 						}
 					});
-				});
-			}
-
-			return fileObj;
-
-		}).then(function(fileObj){
-
-			/*
-			 * Generate etag
-			 */
-			if(options.etag){
-				fileObj.etag = etag(fileObj.data);
-			}
-
-			return fileObj;
-
-		}).then(function(fileObj){
-
-			/*
-			 * Write in cache
-			 */
-			cache.set(fileObj.absolutePath, fileObj, options["max-cache-age"]);
-			return fileObj;
+				}
+			});
 
 		});
+		
+	};
+	
+	const download = function(fileObj){
+		
+		/*
+		 * Check whether to ignore
+		 */
+		var absolutePath = fileObj.absolutePath;
+		var fileName = fileObj.fileName;
 
+		if(checkStringMatch(fileName, absolutePath, options.download)){
+			fileObj.download = true;
+		}else if(checkRegExpMatch(fileName, options.downloadRegExp)){
+			fileObj.download = true;
+		}
+		
+		return fileObj;
+		
+	};
+	
+	const compile = function(fileObj){
+		
+		/*
+		 * Compile where possible and requested
+		 */
+		if(_.indexOf(options.compile, fileObj.extension) > -1){
+			switch(fileObj.extension){
+				case ".less":
+					return new bluebird.Promise(function(res, rej){
+						LESS.render(fileObj.data.toString("utf8"), {
+							filename: fileObj.absolutePath
+						}, function(err, output){
+							if(err){
+								rej(err);
+							}else{									
+								fileObj.data = new Buffer(output.css, "utf8");
+								fileObj.contentLength = fileObj.length;
+								fileObj.extension = ".css";
+								fileObj.contentType = mimeTypes.contentType(fileObj.extension);
+								res(fileObj);
+							}
+						});
+					});
+				break;
+				case ".coffee":
+					fileObj.data = new Buffer(CoffeeScript.compile(fileObj.data.toString("utf8")), "utf8");
+					fileObj.contentLength = fileObj.data.length;
+					fileObj.extension = ".js";
+					fileObj.contentType = mimeTypes.contentType(fileObj.extension);
+				break;
+				case ".cson":
+					fileObj.data = new Buffer(JSON.stringify(CSON.parse(fileObj.data.toString("utf8"))), "utf8");
+					fileObj.contentLength = fileObj.data.length;
+					fileObj.extension = ".json";
+					fileObj.contentType = mimeTypes.contentType(fileObj.extension);
+					fileObj.minified = true;
+				break;
+				case ".yml":
+					fileObj.data = new Buffer(JSON.stringify(YAML.parse(fileObj.data.toString("utf8"))), "utf8");
+					fileObj.contentLength = fileObj.data.length;
+					fileObj.extension = ".json";
+					fileObj.contentType = mimeTypes.contentType(fileObj.extension);
+					fileObj.minified = true;
+				break;
+			}
+		}
+		
+		return fileObj;
+		
+	};
+	
+	const minify = function(fileObj){
+		
+		/*
+		 * Minify where possible and requested
+		 */
+		if(options.minify && !fileObj.minified){
+			switch(fileObj.extension){
+				case ".js":
+					try{
+						var minified = uglifyjs.minify(fileObj.data.toString("utf8"), {
+							mangle:options["minify-mangle"],
+							fromString:true
+						});
+						fileObj.data = new Buffer(minified.code, "utf8");
+						fileObj.contentLength = fileObj.data.length;
+						fileObj.minified = true;
+					}catch(e){}
+				break;
+				case ".css":
+					try{
+						var minified = uglifycss.processString(fileObj.data.toString("utf8"));
+						fileObj.data = new Buffer(minified, "utf8");
+						fileObj.contentLength = fileObj.data.length;
+						fileObj.minified = true;
+					}catch(e){}
+				break;
+				case ".json":
+					try{
+						var minified = JSON.stringify(JSON.parse(fileObj.data.toString("utf8")));
+						fileObj.data = new Buffer(minified, "utf8");
+						fileObj.contentLength = fileObj.data.length;
+						fileObj.minified = true;
+					}catch(e){}
+				break;
+			}
+		}
+
+		return fileObj;
+		
+	};
+	
+	const compress = function(fileObj){
+
+		/*
+		 * Compress using gzip
+		 */
+		if(options.compression && compressible(fileObj.contentType)){
+			return new bluebird.Promise(function(res, rej){
+				var compressionLevel = compressionLevels[options["compression-level"]] || zlib.Z_DEFAULT_COMPRESSION;
+				zlib.gzip(fileObj.data, {level:compressionLevel}, function(err, buffer){
+					if(err){
+						rej(err);
+					}else{
+						fileObj.data = buffer;
+						fileObj.contentLength = buffer.length;
+						fileObj.compressed = true;
+						res(fileObj);
+					}
+				});
+			});
+		}
+
+		return fileObj;
+		
+	};
+	
+	const tag = function(fileObj){
+		
+		/*
+		 * Generate etag
+		 */
+		if(options.etag){
+			fileObj.etag = etag(fileObj.data);
+		}
+
+		return fileObj;
+		
+	};
+	
+	const store = function(fileObj){
+		
+		/*
+		 * Write in cache
+		 */
+		cache.set(fileObj.absolutePath, fileObj, options["max-cache-age"]);
+		return fileObj;
+		
 	};
 
-	var middleware = function(req, res, next){
+	/*
+	 * Where we will store our indexes path
+	 */
+	const indexMap = {};
+
+	const processFile = function(fileObj){
+
+		return new bluebird.Promise.resolve(fileObj)
+			.then(ignore)
+			.then(dotfiles)
+			.then(fetch)
+			.then(download)
+			.then(function(fileObj){
+				if(fileObj.download){
+					return new bluebird.Promise.resolve(fileObj)
+						.then(store);
+				}else{
+					return new bluebird.Promise.resolve(fileObj)
+						.then(compile)
+						.then(minify)
+						.then(compress)
+						.then(tag)
+						.then(store);
+				}
+			});
+		
+	};
+
+	const middleware = function(req, res, next){
 
 		var relativePath = req.path;
 		var absolutePath = p.join(basePath, relativePath);
@@ -357,7 +423,8 @@ module.exports = function(path, options){
 				compressed: false,
 				absolutePath: absolutePath,
 				fileName: fileName,
-				minified: fileName.match(new RegExp("\.min" + ext, "gi"))
+				minified: fileName.match(new RegExp("\.min" + ext, "gi")),
+				download: false
 			};
 
 			/*
@@ -367,6 +434,12 @@ module.exports = function(path, options){
 
 		}).then(function(fileObj){
 
+			if(fileObj.download){
+				res.setHeader("Content-Disposition", "attachment; filename=" + fileObj.fileName);
+				res.status(200).write(fileObj.data);
+				return;
+			}
+			
 			if(options["content-type"] && fileObj.contentType){
 				res.setHeader("Content-Type", fileObj.contentType);
 			}
@@ -468,7 +541,8 @@ module.exports = function(path, options){
 					compressed: false,
 					absolutePath: absolutePath,
 					fileName: fileName,
-					minified: fileName.match(new RegExp("\.min" + ext, "gi"))
+					minified: fileName.match(new RegExp("\.min" + ext, "gi")),
+					download: false
 				};
 
 				files.push(fileObj);

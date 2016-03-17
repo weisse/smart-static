@@ -15,7 +15,8 @@ It provides some useful options in order to make itself as near as possible to y
 - [Unit testing](#unit-testing)
 
 ### <a id="changelog"></a> ChangeLog
-- 0.3.0 - Auto-compilation of ".less", ".coffee", ".cson" and ".yaml"
+- 0.3.1 - download and downloadRegExp options implemented
+- 0.3.0 - Auto-compilation of ".less", ".coffee", ".cson" and ".yml"
 - 0.2.3 - Index option implemented
 - 0.1.7 - Hide dotfiles option implemented
 - 0.1.6 - numeraljs format supported by max-cache-size option
@@ -75,7 +76,7 @@ The options allows you to make your tuning.
 Name | Description | Default
 ---|---|---
 index | It allows you to define your index files (it works for all the directories) | ["index.html", "index.htm"]
-compile | It can make auto-compilations from ".less" to ".css", from ".coffee" to ".js" and from ".cson" and ".yml" to ".json" | [".less", ".coffee", ".cson", ".yml"]
+compile<sup>(1)</sup> | It can make auto-compilations from ".less" to ".css", from ".coffee" to ".js" and from ".cson" and ".yml" to ".json" | [".less", ".coffee", ".cson", ".yml"]
 compression | It allows you to serve files compressing them when possible | true
 compression-level | It defines the level of the compression [*0=BEST_SPEED,1=DEFAULT_COMRESSION,2=BEST_COMPRESSION*] | 1
 minify | It allows you to minimize source files when possibile [*.js,.css,.json*] | false
@@ -92,9 +93,13 @@ browser-cache-s-maxage | It allows you to override the intermediary (such as CDN
 hide-dotfiles | It allows you to hide dotfiles | true
 ignore | It allows you to ignore resources. It works with an entire path or a single resource name | [ ]
 ignoreRegExp | It allows you to ignore resources defining regular expressions. It works only on file names | [ ]
+download<sup>(2)</sup> | It allows you to make resources downloadable. It works with an entire path or a single resource name | [ ]
+downloadRegExp<sup>(2)</sup> | It allows you to make resources downloadable defining regular expressions. It works only on file names | [ ]
 continue | It allows you to pass the request to the next middleware instead of ending it | false
 ignore-errors | It allows you to ignore server errors hiding them with a 404 | false
 
+1. Compiled files can be minimized, mangled and compressed as if they were been fetched already compiled.
+2. Downloadable resources won't be compiled, minimized or compressed.
 
 ### <a id="unit-testing"></a> Unit testing
 

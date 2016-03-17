@@ -1,6 +1,11 @@
 {
 
 	"index": ["index.html", "index.htm"],
+	"ignore": [],
+	"ignoreRegExp": [],
+	"hide-dotfiles": true,
+	"download": [],
+	"downloadRegExp": [],
 	"compile": [".less", ".coffee", ".cson", ".yml"],
 	"compression": true,
 	"compression-level": 1,
@@ -15,9 +20,6 @@
 	"browser-cache": true,
 	"browser-cache-max-age": 300,
 	"browser-cache-s-maxage": 300,
-	"hide-dotfiles": true,
-	"ignore": [],
-	"ignoreRegExp": [],
 	"continue": false,
 	"ignore-errors": false
 
